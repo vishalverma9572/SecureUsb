@@ -1,5 +1,8 @@
+import subprocess
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from PyQt6.QtCore import Qt
+import sys
+
 
 class PasswordWindow(QWidget):
     def __init__(self, device_name, mount_point, parent_window):
@@ -23,7 +26,8 @@ class PasswordWindow(QWidget):
 
         # Heading
         self.heading_label = QLabel(f"Enter password to unlock {device_name}")
-        self.heading_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #FFD700; text-align: center; padding: 10px;")
+        self.heading_label.setStyleSheet(
+            "font-size: 16px; font-weight: bold; color: #FFD700; text-align: center; padding: 10px;")
         self.heading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.heading_label)
 
@@ -42,16 +46,41 @@ class PasswordWindow(QWidget):
 
         self.setLayout(layout)
 
-    def check_password(self):
-        password = self.password_input.text()
+    def prompt_password(self):
+        """Prompt the user to input the encryption password."""
+        password = self.password_input.text().strip()
+        if not password:
+            QMessageBox.critical(self, "Error", "Password cannot be empty.")
+            return None
+        return password
 
-        if password == "securepass":  # Replace with actual password checking logic
-            QMessageBox.information(self, "Success", "USB Drive Unlocked!")
+    def unlock_partition(self, password):
+        """Unlock the LUKS-encrypted partition."""
+        # Automatically infer the encrypted partition name (e.g., sda1 -> sda2)
+        encrypted_device_name = self.device_name[:-1] + str(int(self.device_name[-1]) + 1)
+
+        try:
+            subprocess.run(
+                ["sudo", "cryptsetup", "luksOpen", encrypted_device_name, encrypted_device_name],
+                input=password.encode(), check=True
+            )
+            return True
+        except subprocess.CalledProcessError as e:
+            if "already exists" in str(e):
+                QMessageBox.information(self, "Info", "Partition is already unlocked.")
+            else:
+                QMessageBox.critical(self, "Error", f"Failed to unlock partition: {e}")
+            return False
+
+    def check_password(self):
+        password = self.prompt_password()
+        if password and self.unlock_partition(password):
+            QMessageBox.information(self, "Success", f"{self.device_name} Unlocked!")
             self.close()  # Close this window after unlocking
         else:
             QMessageBox.critical(self, "Error", "Incorrect Password!")
 
     def go_back(self):
-        """Switches back to the parent window (USBDeviceWindow)."""
+        """Switches back to the parent window."""
         self.parent_window.show()  # Show the parent window
         self.close()  # Close the current (Password) window
