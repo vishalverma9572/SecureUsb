@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QInputDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QInputDialog, QHBoxLayout
 from PyQt6.QtCore import Qt
 import subprocess
 import os
@@ -6,11 +6,11 @@ import sys
 
 from drive_manager import MOUNT_POINT
 
-
 class PasswordWindow(QWidget):
-    def __init__(self, device_name, mount_point=MOUNT_POINT):
+    def __init__(self, device_name, previous_window, mount_point=MOUNT_POINT):
         super().__init__()
         self.device_name = device_name
+        self.previous_window = previous_window  # Store reference to previous window
         if self.device_name.startswith("sd") and self.device_name[-1].isdigit():
             base_name = self.device_name[:-1]  # Extract base (e.g., "sda")
             last_num = int(self.device_name[-1]) + 1  # Increment last digit
@@ -23,6 +23,15 @@ class PasswordWindow(QWidget):
         self.setStyleSheet("background-color: #2e2e3e; color: white; font-family: Arial;")
 
         layout = QVBoxLayout()
+
+        # Back button at the top left corner
+        top_layout = QHBoxLayout()
+        self.back_button = QPushButton("Back")
+        self.back_button.setStyleSheet("background-color: #A9A9A9; color: white; padding: 5px; border-radius: 5px;")
+        self.back_button.clicked.connect(self.go_back)
+        top_layout.addWidget(self.back_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        top_layout.addStretch()
+        layout.addLayout(top_layout)
 
         self.label = QLabel(f"Enter password for {device_name}:")
         self.label.setStyleSheet("font-size: 16px; padding: 5px;")
@@ -41,6 +50,10 @@ class PasswordWindow(QWidget):
 
         self.setLayout(layout)
 
+    def go_back(self):
+        # Show the previous window and close the current one
+        self.previous_window.show()
+        self.close()
 
     def unlock_drive(self, password, sudo_password):
         """Unlock the LUKS-encrypted partition."""
@@ -49,14 +62,14 @@ class PasswordWindow(QWidget):
         if not self.device_name.startswith("/dev/"):
             self.device_name = f"/dev/{self.device_name}"
 
-        print(f"Using device: {self.device_name} with password: {password}")
+        print(f"Using device: {self.device_name} with password: ")
 
         try:
             # Run pre-checks to ensure the partition is not already unlocked
             self.pre_checks(sudo_password)
 
             # Step 1: Unlock the LUKS partition
-            print(f"Unlocking device: {self.device_name} with password: {password}")
+            print(f"Unlocking device: {self.device_name} with password: ")
             subprocess.run(
                 ["sudo", "cryptsetup", "luksOpen", self.device_name, CRYPT_NAME],
                 input=password.encode(),
@@ -186,6 +199,6 @@ class PasswordWindow(QWidget):
 
     def open_drive_window(self):
         from gui.drive_window import DriveWindow
-        self.drive_window = DriveWindow(self.mount_point)
+        self.drive_window = DriveWindow(self.mount_point, self.previous_window)  # Pass previous window reference
         self.drive_window.show()
         self.close()

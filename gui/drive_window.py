@@ -1,18 +1,29 @@
 import os
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidget, QPushButton
+import subprocess
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidget, QPushButton, QHBoxLayout
 from PyQt6.QtCore import Qt
 
 class DriveWindow(QWidget):
-    def __init__(self, mount_point):
+    def __init__(self, mount_point, previous_window):
         super().__init__()
 
         self.mount_point = mount_point
+        self.previous_window = previous_window  # Store reference to previous window
 
         self.setWindowTitle("Drive Contents")
         self.setGeometry(200, 200, 500, 400)
         self.setStyleSheet("background-color: #1e1e2e; color: white; font-family: Arial;")
 
         layout = QVBoxLayout()
+
+        # Back button at the top left corner
+        top_layout = QHBoxLayout()
+        self.back_button = QPushButton("Unmount and Go Back")
+        self.back_button.setStyleSheet("background-color: #A9A9A9; color: white; padding: 5px; border-radius: 5px;")
+        self.back_button.clicked.connect(self.unmount_and_go_back)
+        top_layout.addWidget(self.back_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        top_layout.addStretch()
+        layout.addLayout(top_layout)
 
         self.label = QLabel(f"Files in {mount_point}:")
         self.label.setStyleSheet("font-size: 18px; font-weight: bold;")
@@ -39,3 +50,14 @@ class DriveWindow(QWidget):
             self.file_list.addItems(files if files else ["No files found"])
         except Exception as e:
             self.file_list.addItem(f"Error: {e}")
+
+    def unmount_and_go_back(self):
+        """Forcefully unmount the partition and clean up before going back."""
+        try:
+            print(f"Attempting to force unmount the partition at {self.mount_point}...")
+            subprocess.run(["sudo", "umount", "-f", self.mount_point], check=True)
+            print("Partition unmounted successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to unmount the partition: {e}")
+        self.previous_window.show()
+        self.close()

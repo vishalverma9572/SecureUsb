@@ -99,6 +99,6 @@ class USBDeviceWindow(QWidget):
             QMessageBox.critical(self, "Error", "SecureUsb not found! This is not a valid drive.")
 
     def open_password_window(self, device_name, mount_point):
-        self.password_window = PasswordWindow(device_name, mount_point)
+        self.password_window = PasswordWindow(device_name, self, mount_point)
         self.password_window.show()
         self.close()
