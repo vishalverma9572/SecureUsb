@@ -41,7 +41,9 @@ class PasswordWindow(QWidget):
 
         self.setLayout(layout)
 
+
     def unlock_drive(self, password, sudo_password):
+        """Unlock the LUKS-encrypted partition."""
         CRYPT_NAME = "encrypted_partition"  # Name for unlocked partition
 
         if not self.device_name.startswith("/dev/"):
@@ -50,42 +52,42 @@ class PasswordWindow(QWidget):
         print(f"Using device: {self.device_name} with password: {password}")
 
         try:
+            # Run pre-checks to ensure the partition is not already unlocked
             self.pre_checks(sudo_password)
+
+            # Step 1: Unlock the LUKS partition
             print(f"Unlocking device: {self.device_name} with password: {password}")
-            process = subprocess.Popen(
-                ["sudo", "-S", "cryptsetup", "luksOpen", self.device_name, CRYPT_NAME],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
+            subprocess.run(
+                ["sudo", "cryptsetup", "luksOpen", self.device_name, CRYPT_NAME],
+                input=password.encode(),
+                check=True
             )
+            print("Drive unlocked successfully.")
 
-            stdin_input = sudo_password + "\n" + password + "\n"
-            stdout, stderr = process.communicate(stdin_input)
-
-            if process.returncode != 0:
-                print(f"Failed to unlock drive: {stderr}")
-                return False
-
-            print(f"Drive unlocked successfully: {stdout}")
-
+            # Step 2: Mount the unlocked partition
             if not os.path.exists(self.mount_point):
                 os.makedirs(self.mount_point)
 
-            process = subprocess.run(
-                ["sudo", "-S", "mount", f"/dev/mapper/{CRYPT_NAME}", self.mount_point],
-                input=sudo_password + "\n",  # Pass sudo password here
-                check=True,
-                capture_output=True,
-                text=True
+            # Mount the partition
+            subprocess.run(
+                ["sudo", "mount", f"/dev/mapper/{CRYPT_NAME}", self.mount_point],
+                input=sudo_password.encode(),  # Pass sudo password here
+                check=True
             )
 
-            print(f"Mount output: {process.stdout}")
+            print("Partition mounted successfully.")
             return True
 
         except subprocess.CalledProcessError as e:
-            print(f"Failed to unlock drive: {e}")
-            return False
+            if "already exists" in str(e):
+                print("Drive is already unlocked.")
+            else:
+                print(f"Failed to unlock drive: {e}")
+                sys.exit(1)
+
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            sys.exit(1)
 
     def pre_checks(self, sudo_password):
         """Run pre-checks to ensure the partition is not already mounted and unlocked."""
