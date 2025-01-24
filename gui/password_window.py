@@ -47,11 +47,11 @@ class PasswordWindow(QWidget):
         if not self.device_name.startswith("/dev/"):
             self.device_name = f"/dev/{self.device_name}"
 
-        print(f"Using device: {self.device_name}")
+        print(f"Using device: {self.device_name} with password: {password}")
 
         try:
             self.pre_checks(sudo_password)
-
+            print(f"Unlocking device: {self.device_name} with password: {password}")
             process = subprocess.Popen(
                 ["sudo", "-S", "cryptsetup", "luksOpen", self.device_name, CRYPT_NAME],
                 stdin=subprocess.PIPE,
@@ -91,20 +91,75 @@ class PasswordWindow(QWidget):
         """Run pre-checks to ensure the partition is not already mounted and unlocked."""
         CRYPT_NAME = "encrypted_partition"
         try:
+            # Check if the partition is already mounted, and unmount if necessary
             if os.path.ismount(self.mount_point):
                 print(f"Partition is already mounted at {self.mount_point}. Unmounting...")
-                subprocess.run(["sudo", "umount", self.mount_point], check=True)
-                print("Unmounted the partition successfully.")
+                process = subprocess.Popen(
+                    ["sudo", "-S", "umount", self.mount_point],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                stdout, stderr = process.communicate(input=f"{sudo_password}\n")
 
+                if process.returncode == 0:
+                    print("Unmounted the partition successfully.")
+                else:
+                    print(f"Failed to unmount the partition: {stderr}")
+                    return False
+
+            # Check if the LUKS partition is already open
             luks_status = subprocess.run(
-                ["sudo", "cryptsetup", "status", CRYPT_NAME],
-                capture_output=True, text=True, input=sudo_password
+                ["sudo", "-S", "cryptsetup", "status", CRYPT_NAME],
+                capture_output=True, text=True, input=f"{sudo_password}\n"  # Pass sudo password here
             )
 
             if "is active" in luks_status.stdout:
                 print(f"LUKS partition '{CRYPT_NAME}' is already active. Closing...")
-                subprocess.run(["sudo", "cryptsetup", "luksClose", CRYPT_NAME], check=True)
-                print("Closed the LUKS partition successfully.")
+                # Check if the partition is in use (to avoid closing it while in use)
+                in_use_status = subprocess.run(
+                    ["sudo", "lsof", "/dev/mapper/encrypted_partition"],
+                    capture_output=True, text=True
+                )
+
+                if in_use_status.returncode == 0:
+                    print(f"The partition is still in use by some process: {in_use_status.stdout}")
+                    return False
+
+                process = subprocess.Popen(
+                    ["sudo", "-S", "cryptsetup", "luksClose", CRYPT_NAME],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+                stdout, stderr = process.communicate(input=f"{sudo_password}\n")
+
+                # Log output from luksClose to help debug
+                print("luksClose Output:")
+                print(stdout)
+                print("luksClose Error:")
+                print(stderr)
+
+                if process.returncode == 0:
+                    print("Closed the LUKS partition successfully.")
+                else:
+                    print(f"Failed to close the LUKS partition: {stderr}")
+                    return False
+
+            # Double-check if the LUKS partition is still active
+            luks_status = subprocess.run(
+                ["sudo", "-S", "cryptsetup", "status", CRYPT_NAME],
+                capture_output=True, text=True, input=f"{sudo_password}\n"
+            )
+
+            if "is active" in luks_status.stdout:
+                print(f"LUKS partition '{CRYPT_NAME}' is still active after closing.")
+                return False
+
+            return True
+
         except subprocess.CalledProcessError as e:
             print(f"Pre-checks failed: {e}")
             sys.exit(1)
