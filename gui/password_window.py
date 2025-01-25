@@ -6,6 +6,7 @@ import sys
 
 from drive_manager import MOUNT_POINT
 
+
 class PasswordWindow(QWidget):
     def __init__(self, device_name, previous_window, mount_point=MOUNT_POINT):
         super().__init__()
@@ -24,12 +25,19 @@ class PasswordWindow(QWidget):
 
         layout = QVBoxLayout()
 
-        # Back button at the top left corner
+        # Top layout with Back button and Change Password button
         top_layout = QHBoxLayout()
         self.back_button = QPushButton("Back")
         self.back_button.setStyleSheet("background-color: #A9A9A9; color: white; padding: 5px; border-radius: 5px;")
         self.back_button.clicked.connect(self.go_back)
         top_layout.addWidget(self.back_button, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        self.change_password_button = QPushButton("Change Password")
+        self.change_password_button.setStyleSheet(
+            "background-color: #FF6347; color: white; padding: 5px; border-radius: 5px;")
+        self.change_password_button.clicked.connect(self.change_password)
+        top_layout.addWidget(self.change_password_button, alignment=Qt.AlignmentFlag.AlignRight)
+
         top_layout.addStretch()
         layout.addLayout(top_layout)
 
@@ -188,7 +196,7 @@ class PasswordWindow(QWidget):
 
         # Prompt for sudo password
         sudo_password, ok = QInputDialog.getText(self, 'Enter Sudo Password', 'Please enter your sudo password:',
-                                                  QLineEdit.EchoMode.Password)
+                                                 QLineEdit.EchoMode.Password)
         if ok and sudo_password:
             if self.unlock_drive(password, sudo_password):
                 self.open_drive_window()
@@ -202,3 +210,63 @@ class PasswordWindow(QWidget):
         self.drive_window = DriveWindow(self.mount_point, self.previous_window)  # Pass previous window reference
         self.drive_window.show()
         self.close()
+
+    def change_password(self):
+        """Change the LUKS encryption password."""
+        current_password, ok = QInputDialog.getText(self, 'Enter Current Password',
+                                                    'Please enter your current encryption password:',
+                                                    QLineEdit.EchoMode.Password)
+        if not ok or not current_password:
+            QMessageBox.critical(self, "Error", "Current password is required.")
+            return
+
+        new_password, ok = QInputDialog.getText(self, 'Enter New Password', 'Please enter the new encryption password:',
+                                                QLineEdit.EchoMode.Password)
+        if not ok or not new_password:
+            QMessageBox.critical(self, "Error", "New password cannot be empty.")
+            return
+
+        confirm_password, ok = QInputDialog.getText(self, 'Confirm New Password',
+                                                    'Please confirm the new encryption password:',
+                                                    QLineEdit.EchoMode.Password)
+        if not ok or new_password != confirm_password:
+            QMessageBox.critical(self, "Error", "Passwords do not match. Please try again.")
+            return
+
+        # Prompt for sudo password
+        sudo_password, ok = QInputDialog.getText(self, 'Enter Sudo Password', 'Please enter your sudo password:',
+                                                 QLineEdit.EchoMode.Password)
+        if not ok or not sudo_password:
+            QMessageBox.critical(self, "Error", "Sudo password is required.")
+            return
+
+        try:
+            # Run pre-checks to ensure the partition is not already unlocked
+            if not self.pre_checks(sudo_password):
+                QMessageBox.critical(self, "Error", "Pre-checks failed. Partition might be in use or already unlocked.")
+                return
+
+            # Switch to sudo mode
+            cmd_sudo = ["sudo", "-S", "echo", "Switched to sudo mode"]
+            process_sudo = subprocess.Popen(cmd_sudo, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE)
+            process_sudo.communicate(input=f"{sudo_password}\n".encode())
+
+            if process_sudo.returncode != 0:
+                QMessageBox.critical(self, "Error",
+                                     f"Failed to switch to sudo mode: {process_sudo.stderr.read().decode()}")
+                return
+
+            # Change the LUKS password using cryptsetup
+            cmd_change_key = ["sudo", "cryptsetup", "luksChangeKey", self.device_name]
+            process_change_key = subprocess.Popen(cmd_change_key, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                                  stderr=subprocess.PIPE)
+            process_change_key.communicate(input=f"{current_password}\n{new_password}\n".encode())
+
+            if process_change_key.returncode == 0:
+                QMessageBox.information(self, "Success", "Password changed successfully.")
+            else:
+                QMessageBox.critical(self, "Error",
+                                     f"Failed to change the password: {process_change_key.stderr.read().decode()}")
+        except subprocess.CalledProcessError as e:
+            QMessageBox.critical(self, "Error", f"Failed to change the password: {e}")

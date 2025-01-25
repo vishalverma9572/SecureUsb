@@ -234,13 +234,7 @@ class DriveWindow(QWidget):
             self.file_list.addItem(f"Error: {e}")
 
     def unmount_and_go_back(self):
-        """Forcefully unmount the partition and clean up before going back."""
-        try:
-            print(f"Attempting to force unmount the partition at {self.mount_point}...")
-            subprocess.run(["sudo", "umount", "-f", self.mount_point], check=True)
-            print("Partition unmounted successfully.")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to unmount the partition: {e}")
+
         self.previous_window.show()
         self.close()
 
@@ -327,5 +321,6 @@ class DriveWindow(QWidget):
             subprocess.run(['sudo', 'umount', self.mount_point], check=True)
             QMessageBox.information(self, "Unmounted", "Drive successfully unmounted.")
         except subprocess.CalledProcessError:
+
             QMessageBox.warning(self, "Error", "Failed to unmount the drive.")
 
