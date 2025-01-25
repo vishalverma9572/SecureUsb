@@ -310,3 +310,22 @@ class DriveWindow(QWidget):
         )
         return kdf.derive(password.encode())
 
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, "Confirm Exit", "Are you sure you want to exit?",
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                     QMessageBox.StandardButton.No)
+
+        if reply == QMessageBox.StandardButton.Yes:
+            print("unmounting device")
+            self.unmount_drive()  # Unmount the drive before exiting
+            event.accept()  # Close the window
+        else:
+            event.ignore()  # Cancel the close event
+
+    def unmount_drive(self):
+        try:
+            subprocess.run(['sudo', 'umount', self.mount_point], check=True)
+            QMessageBox.information(self, "Unmounted", "Drive successfully unmounted.")
+        except subprocess.CalledProcessError:
+            QMessageBox.warning(self, "Error", "Failed to unmount the drive.")
+
