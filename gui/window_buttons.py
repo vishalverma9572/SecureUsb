@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QWidget, QStyle
-from PyQt6.QtGui import QPixmap, QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QWidget
+from PyQt6.QtGui import QPixmap, QFont, QIcon
+from PyQt6.QtCore import Qt, QSize
 import os
 
 
@@ -31,20 +31,31 @@ class BrandingHeader(QWidget):
         self.title_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        # Window buttons (minimize, maximize, close)
+        # Load custom icons
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        min_icon_path = os.path.join(base_dir, "icons/min.png")
+        max_icon_path = os.path.join(base_dir, "icons/max.png")
+        close_icon_path = os.path.join(base_dir, "icons/close.png")
+
+        # Minimize button
         self.min_button = QPushButton()
-        self.min_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarMinButton))
+        self.min_button.setIcon(QIcon(QPixmap(min_icon_path)))
+        self.min_button.setIconSize(QSize(24, 24))
         self._style_button(self.min_button)
 
+        # Maximize button
         self.max_button = QPushButton()
-        self.max_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarMaxButton))
+        self.max_button.setIcon(QIcon(QPixmap(max_icon_path)))
+        self.max_button.setIconSize(QSize(24, 24))
         self._style_button(self.max_button)
 
+        # Close button
         self.close_button = QPushButton()
-        self.close_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
+        self.close_button.setIcon(QIcon(QPixmap(close_icon_path)))
+        self.close_button.setIconSize(QSize(24, 24))
         self._style_button(self.close_button)
 
-        # Connect actions for window buttons
+        # Connect actions
         self.min_button.clicked.connect(self.minimize_window)
         self.max_button.clicked.connect(self.maximize_window)
         self.close_button.clicked.connect(self.close_window)
@@ -54,7 +65,7 @@ class BrandingHeader(QWidget):
         self.max_button.setToolTip("Maximize")
         self.close_button.setToolTip("Close")
 
-        # Window button layout
+        # Button layout
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.min_button)
         button_layout.addWidget(self.max_button)
@@ -62,18 +73,18 @@ class BrandingHeader(QWidget):
         button_layout.setSpacing(10)
         button_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        # Add elements to branding layout
+        # Branding layout
         branding_layout.addWidget(self.logo_label)
         branding_layout.addWidget(self.title_label)
         branding_layout.addStretch()
         branding_layout.addLayout(button_layout)
 
-        # Custom separator line
+        # Separator line
         self.line = QWidget(self)
-        self.line.setFixedHeight(2)  # Slightly thicker separator
-        self.line.setStyleSheet("background-color: #666666;")  # Grey line
+        self.line.setFixedHeight(2)
+        self.line.setStyleSheet("background-color: #666666;")
 
-        # Final header layout
+        # Final layout
         header_layout = QVBoxLayout()
         header_layout.addLayout(branding_layout)
         header_layout.addWidget(self.line)
@@ -85,14 +96,14 @@ class BrandingHeader(QWidget):
             QPushButton {
                 background: transparent;
                 border: none;
-                color: #d0d0d0;
-                font-size: 16px;
+                padding: 4px;
             }
             QPushButton:hover {
-                color: #a4d6a4;  /* Light green on hover */
+                background-color: #3a3a3a;
+                border-radius: 4px;
             }
             QPushButton:pressed {
-                color: #4c8c4a;  /* Darker green when pressed */
+                background-color: #2e2e2e;
             }
         """)
 
