@@ -1,5 +1,3 @@
-# usb_card.py
-
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton, QSizePolicy
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
@@ -9,18 +7,54 @@ class USBCard(QFrame):
     def __init__(self, device_name, mount_point, base_dir, on_select):
         super().__init__()
 
+        # Set professional dark style matching the Pop!_OS color scheme
         self.setStyleSheet("""
             QFrame {
-                background-color: #1e1e2e;
-                border: 1px solid #333;
-                border-radius: 12px;
-                padding: 15px;
+                background-color: #2e2e2e;  /* Dark background for card */
+                border: 1px solid #444;     /* Lighter border for subtle separation */
+                border-radius: 12px;        /* Rounded corners */
+                padding: 15px;              /* Padding for spacing */
+            }
+
+            QLabel {
+                color: #d0d0d0;             /* Light grey text */
+                font-size: 14px;
+            }
+
+            QPushButton {
+                background-color: #3b8c3a;  /* Green button background */
+                color: white;                /* White text */
+                padding: 8px 16px;           /* Padding for button */
+                font-weight: bold;
+                border-radius: 6px;
+                border: none;
+            }
+
+            QPushButton:hover {
+                background-color: #4caf50;  /* Lighter green on hover */
+            }
+
+            QPushButton:pressed {
+                background-color: #388e3c;  /* Darker green when pressed */
+            }
+
+            QLabel#deviceName {
+                font-size: 16px;
+                font-weight: bold;
+            }
+
+            QLabel#mountPoint {
+                color: #aaa;                /* Grey color for mount point */
+                font-size: 12px;
             }
         """)
+
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
+        # Layout
         layout = QVBoxLayout()
 
+        # Device icon
         icon_label = QLabel()
         icon_path = os.path.join(base_dir, "..", "resources", "usb_generic.jpg")
         icon_pixmap = QPixmap(icon_path)
@@ -29,26 +63,15 @@ class USBCard(QFrame):
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(icon_label)
 
-        label = QLabel(f"<b>{device_name}</b><br><span style='color: #aaa;'>Mount Point:</span> {mount_point}")
+        # Device name and mount point
+        label = QLabel(f"<span id='deviceName'>{device_name}</span><br><span id='mountPoint'>Mount Point: {mount_point}</span>")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("padding: 8px; font-size: 15px;")
         layout.addWidget(label)
 
+        # Select button
         open_button = QPushButton("Select")
-        open_button.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                padding: 8px 16px;
-                font-weight: bold;
-                font-size: 14px;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-        """)
         open_button.clicked.connect(lambda: on_select(device_name, mount_point))
         layout.addWidget(open_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
+        # Set layout for the card
         self.setLayout(layout)

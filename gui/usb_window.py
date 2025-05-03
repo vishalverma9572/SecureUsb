@@ -23,24 +23,24 @@ class USBDeviceWindow(QWidget):
 
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
 
-        # Set modern dark style
+        # Set modern dark style matching Pop!_OS color scheme
         self.setStyleSheet("""
             QWidget {
-                background-color: #121212;
-                color: #d0d0d0;
+                background-color: #2e2e2e;  /* Dark grey background */
+                color: #d0d0d0;  /* Light grey text color */
                 font-family: 'Segoe UI', sans-serif;
-                font-size: 14px;
+                font-size: 13px;
             }
 
             QLabel#headingLabel {
-                color: #eeeeee;
-                font-size: 22px;
+                color: #a4d6a4;  /* Soft greenish color for the heading */
+                font-size: 18px;
                 font-weight: bold;
                 padding: 12px 0;
             }
 
             QLabel {
-                color: #bbbbbb;
+                color: #bbbbbb;  /* Slightly darker grey for regular text */
             }
 
             QScrollArea {
@@ -48,20 +48,24 @@ class USBDeviceWindow(QWidget):
                 border: none;
             }
 
-            QPushButton {
-                background-color: #2c2c2c;
-                color: #ffffff;
-                border: 1px solid #3a3a3a;
-                border-radius: 6px;
-                padding: 6px 10px;
+            QPushButton#usbButton {
+                background-color: transparent;
+                color: #d0d0d0;  /* Light grey text */
+                border: none;
+                font-size: 18px;
+                padding: 0;
             }
 
-            QPushButton:hover {
-                background-color: #3d3d3d;
+            QPushButton#usbButton:hover {
+                color: #a4d6a4;  /* Light green on hover */
             }
 
-            QPushButton:pressed {
-                background-color: #1e1e1e;
+            QPushButton#usbButton:pressed {
+                color: #4c8c4a;  /* Darker green when pressed */
+            }
+
+            QLabel#headingLabel {
+                color: #a4d6a4;  /* Soft greenish color for the heading */
             }
         """)
 
@@ -69,20 +73,15 @@ class USBDeviceWindow(QWidget):
         self.branding_header = BrandingHeader(self)
 
         # Heading with Refresh Button
-        self.heading_label = QLabel("Select your SecureUsb device to proceed 🔒")
+        self.heading_label = QLabel("Drives:")
         self.heading_label.setObjectName("headingLabel")
         self.heading_label.setFont(QFont("Segoe UI", 16))
         self.heading_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        self.refresh_button = QPushButton()
-        icon_path = os.path.join(self.base_dir, "icons", "refresh.png")
-        if os.path.exists(icon_path):
-            self.refresh_button.setIcon(QIcon(icon_path))
-        else:
-            self.refresh_button.setText("⟳")
-        self.refresh_button.setIconSize(QSize(24, 24))
+        self.refresh_button = QPushButton("⟳")
         self.refresh_button.setFixedSize(40, 40)
         self.refresh_button.setToolTip("Refresh USB Devices")
+        self.refresh_button.setObjectName("usbButton")
         self.refresh_button.clicked.connect(self.refresh_usb_list)
 
         heading_layout = QHBoxLayout()
@@ -93,7 +92,7 @@ class USBDeviceWindow(QWidget):
 
         # Content Section
         content_layout = QVBoxLayout()
-        content_layout.setContentsMargins(30, 10, 30, 30)
+        content_layout.setContentsMargins(30, 2, 30, 30)  # Reduced top margin from 10 to 5
         content_layout.setSpacing(15)
         content_layout.addLayout(heading_layout)
 
@@ -122,6 +121,7 @@ class USBDeviceWindow(QWidget):
     def refresh_usb_list(self):
         devices = list_usb_devices()
 
+        # Remove any previous device cards
         for i in reversed(range(self.usb_layout.count())):
             widget = self.usb_layout.itemAt(i).widget()
             if widget:
@@ -132,7 +132,7 @@ class USBDeviceWindow(QWidget):
                 if mount_point:
                     self.add_usb_card(device_name, mount_point)
         else:
-            no_usb_label = QLabel("No USB devices found.")
+            no_usb_label = QLabel("No USB devices detected.")
             no_usb_label.setStyleSheet("color: #777; font-style: italic; padding: 10px;")
             self.usb_layout.addWidget(no_usb_label)
 
@@ -149,7 +149,7 @@ class USBDeviceWindow(QWidget):
         if check_public_partition(mount_point):
             self.open_password_window(device_name, mount_point)
         else:
-            QMessageBox.critical(self, "Error", "SecureUsb not found! This is not a valid drive.")
+            QMessageBox.critical(self, "Invalid Device", "The selected drive is not a SecureUsb device.")
 
     def open_password_window(self, device_name, mount_point):
         self.password_window = PasswordWindow(device_name, self, mount_point)

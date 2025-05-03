@@ -34,12 +34,15 @@ class BrandingHeader(QWidget):
         # Window buttons (minimize, maximize, close)
         self.min_button = QPushButton()
         self.min_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarMinButton))
+        self._style_button(self.min_button)
 
         self.max_button = QPushButton()
         self.max_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarMaxButton))
+        self._style_button(self.max_button)
 
         self.close_button = QPushButton()
         self.close_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
+        self._style_button(self.close_button)
 
         # Connect actions for window buttons
         self.min_button.clicked.connect(self.minimize_window)
@@ -76,6 +79,22 @@ class BrandingHeader(QWidget):
         header_layout.addWidget(self.line)
 
         self.setLayout(header_layout)
+
+    def _style_button(self, button):
+        button.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                color: #d0d0d0;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                color: #a4d6a4;  /* Light green on hover */
+            }
+            QPushButton:pressed {
+                color: #4c8c4a;  /* Darker green when pressed */
+            }
+        """)
 
     def minimize_window(self):
         if self.parent():
