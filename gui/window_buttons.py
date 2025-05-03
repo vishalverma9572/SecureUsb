@@ -16,7 +16,7 @@ class BrandingHeader(QWidget):
         branding_layout.setContentsMargins(0, 0, 20, 0)
         branding_layout.setSpacing(20)
 
-        # Logo
+        # Logo (leftmost)
         self.logo_label = QLabel()
         logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
         logo_pixmap = QPixmap(logo_path)
@@ -26,10 +26,29 @@ class BrandingHeader(QWidget):
             )
         self.logo_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        # Title
+        # USB icon and title in a tight sub-layout
+        icon_title_layout = QHBoxLayout()
+        icon_title_layout.setSpacing(5)  # Reduce spacing here
+        icon_title_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.usb_icon_label = QLabel()
+        usb_icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "usb.png")
+        usb_pixmap = QPixmap(usb_icon_path)
+        if not usb_pixmap.isNull():
+            self.usb_icon_label.setPixmap(
+                usb_pixmap.scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            )
+        self.usb_icon_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
         self.title_label = QLabel("SecureUsb")
         self.title_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
+        icon_title_layout.addWidget(self.usb_icon_label)
+        icon_title_layout.addWidget(self.title_label)
+
+        icon_title_widget = QWidget()
+        icon_title_widget.setLayout(icon_title_layout)
 
         # Load custom icons
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -73,9 +92,9 @@ class BrandingHeader(QWidget):
         button_layout.setSpacing(10)
         button_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        # Branding layout
+        # Add widgets to branding layout
         branding_layout.addWidget(self.logo_label)
-        branding_layout.addWidget(self.title_label)
+        branding_layout.addWidget(icon_title_widget)
         branding_layout.addStretch()
         branding_layout.addLayout(button_layout)
 
