@@ -18,6 +18,7 @@ class USBCard(QFrame):
                 background-color: #2e2e2e;
                 padding: 15px;
                 border-radius: 12px;
+                transition: background-color 0.3s ease;  /* Smooth transition */
             }
             QLabel {
                 color: #d0d0d0;
@@ -170,3 +171,80 @@ class USBCard(QFrame):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.on_select(self.device_name, self.mount_point)
+
+    def enterEvent(self, event):
+        # Change background color when hovered
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #3b3b3b;  /* Darker shade for hover effect */
+                padding: 15px;
+                border-radius: 12px;
+            }
+            QLabel {
+                color: #d0d0d0;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #3b8c3a;
+                color: white;
+                padding: 8px 16px;
+                font-weight: bold;
+                border-radius: 6px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+            QPushButton:pressed {
+                background-color: #388e3c;
+            }
+            QPushButton#toggleButton {
+                background-color: #65a465;
+                border-radius: 6px;
+            }
+            QPushButton#toggleButton:hover {
+                background-color: #76b476;
+            }
+            QPushButton#toggleButton:pressed {
+                background-color: #6b9d6b;
+            }
+        """)
+
+    def leaveEvent(self, event):
+        # Reset background color when mouse leaves
+        self.setStyleSheet("""
+            QFrame {
+                background-color: #2e2e2e;
+                padding: 15px;
+                border-radius: 12px;
+            }
+            QLabel {
+                color: #d0d0d0;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #3b8c3a;
+                color: white;
+                padding: 8px 16px;
+                font-weight: bold;
+                border-radius: 6px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+            QPushButton:pressed {
+                background-color: #388e3c;
+            }
+            QPushButton#toggleButton {
+                background-color: #65a465;
+                border-radius: 6px;
+            }
+            QPushButton#toggleButton:hover {
+                background-color: #76b476;
+            }
+            QPushButton#toggleButton:pressed {
+                background-color: #6b9d6b;
+            }
+        """)
+
