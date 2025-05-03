@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QSpacerItem, QSizePolicy, QMessageBox
 )
 from PyQt6.QtCore import Qt, QTimer, QSize
-from PyQt6.QtGui import QIcon, QFont
+from PyQt6.QtGui import QFont
 import os
 
 from usb_manager import list_usb_devices, check_public_partition
@@ -72,7 +72,7 @@ class USBDeviceWindow(QWidget):
         # Branding Header
         self.branding_header = BrandingHeader(self)
 
-        # Heading with Refresh Button
+        # Heading with Refresh and Back Button
         self.heading_label = QLabel("Drives:")
         self.heading_label.setObjectName("headingLabel")
         self.heading_label.setFont(QFont("Segoe UI", 16))
@@ -84,17 +84,41 @@ class USBDeviceWindow(QWidget):
         self.refresh_button.setObjectName("usbButton")
         self.refresh_button.clicked.connect(self.refresh_usb_list)
 
+        self.back_button = QPushButton("Back")
+        self.back_button.setFixedSize(40, 40)
+        self.back_button.setToolTip("Back to USB Device List")
+        self.back_button.setObjectName("usbButton")
+        self.back_button.clicked.connect(self.go_back)
+        self.back_button.setStyleSheet("""
+            QPushButton#usbButton {
+                background-color: transparent;
+                color: #d0d0d0;  /* Light grey text */
+                border: none;
+                font-size: 18px;
+                padding: 0;
+            }
+
+            QPushButton#usbButton:hover {
+                color: #a4d6a4;  /* Light green on hover */
+            }
+
+            QPushButton#usbButton:pressed {
+                color: #4c8c4a;  /* Darker green when pressed */
+            }
+        """)  # Match style with refresh_button
+
         heading_layout = QHBoxLayout()
         heading_layout.setContentsMargins(0, 0, 0, 0)
         heading_layout.addWidget(self.heading_label)
         heading_layout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
         heading_layout.addWidget(self.refresh_button)
+        heading_layout.addWidget(self.back_button)
 
         # Content Section
-        content_layout = QVBoxLayout()
-        content_layout.setContentsMargins(30, 2, 30, 30)  # Reduced top margin from 10 to 5
-        content_layout.setSpacing(15)
-        content_layout.addLayout(heading_layout)
+        self.content_layout = QVBoxLayout()  # To store dynamic content
+        self.content_layout.setContentsMargins(30, 2, 30, 30)  # Reduced top margin from 10 to 5
+        self.content_layout.setSpacing(15)
+        self.content_layout.addLayout(heading_layout)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -105,14 +129,14 @@ class USBDeviceWindow(QWidget):
         self.usb_layout.setSpacing(12)
 
         self.scroll_area.setWidget(self.usb_container)
-        content_layout.addWidget(self.scroll_area)
+        self.content_layout.addWidget(self.scroll_area)
 
         # Combine all layouts
         main_layout = QVBoxLayout()
         main_layout.setSpacing(10)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(self.branding_header)
-        main_layout.addLayout(content_layout)
+        main_layout.addLayout(self.content_layout)
 
         self.setLayout(main_layout)
 
@@ -147,11 +171,25 @@ class USBDeviceWindow(QWidget):
 
     def handle_usb_selection(self, device_name, mount_point):
         if check_public_partition(mount_point):
-            self.open_password_window(device_name, mount_point)
+            self.show_password_window(device_name, mount_point)
         else:
             QMessageBox.critical(self, "Invalid Device", "The selected drive is not a SecureUsb device.")
 
-    def open_password_window(self, device_name, mount_point):
+    def show_password_window(self, device_name, mount_point):
+        # Clear the existing content
+        for i in reversed(range(self.content_layout.count())):
+            widget = self.content_layout.itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+
+        # Create and display the password window in place
         self.password_window = PasswordWindow(device_name, self, mount_point)
-        self.password_window.show()
+        self.content_layout.addWidget(self.password_window)
+
+        # Keep the back button visible when showing the password window
+        self.back_button.setVisible(True)
+
+    def go_back(self):
+        # Close the current window and create a new instance of USBDeviceWindow
         self.close()
+        self.__init__()
