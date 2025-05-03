@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QScrollArea, QPushButton, QHBoxLayout,
     QSpacerItem, QSizePolicy, QMessageBox
 )
-from PyQt6.QtCore import Qt, QTimer, QSize
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
 import os
 
@@ -26,21 +26,21 @@ class USBDeviceWindow(QWidget):
         # Set modern dark style matching Pop!_OS color scheme
         self.setStyleSheet("""
             QWidget {
-                background-color: #2e2e2e;  /* Dark grey background */
-                color: #d0d0d0;  /* Light grey text color */
+                background-color: #2e2e2e;
+                color: #d0d0d0;
                 font-family: 'Segoe UI', sans-serif;
                 font-size: 13px;
             }
 
             QLabel#headingLabel {
-                color: #a4d6a4;  /* Soft greenish color for the heading */
+                color: #a4d6a4;
                 font-size: 18px;
                 font-weight: bold;
                 padding: 12px 0;
             }
 
             QLabel {
-                color: #bbbbbb;  /* Slightly darker grey for regular text */
+                color: #bbbbbb;
             }
 
             QScrollArea {
@@ -50,76 +50,64 @@ class USBDeviceWindow(QWidget):
 
             QPushButton#usbButton {
                 background-color: transparent;
-                color: #d0d0d0;  /* Light grey text */
+                color: #d0d0d0;
                 border: none;
                 font-size: 18px;
                 padding: 0;
             }
 
             QPushButton#usbButton:hover {
-                color: #a4d6a4;  /* Light green on hover */
+                color: #a4d6a4;
             }
 
             QPushButton#usbButton:pressed {
-                color: #4c8c4a;  /* Darker green when pressed */
-            }
-
-            QLabel#headingLabel {
-                color: #a4d6a4;  /* Soft greenish color for the heading */
+                color: #4c8c4a;
             }
         """)
 
+        self.setup_ui()
+        QTimer.singleShot(0, self.refresh_usb_list)
+
+    def setup_ui(self):
         # Branding Header
         self.branding_header = BrandingHeader(self)
 
-        # Heading with Refresh and Back Button
+        # Heading Label
         self.heading_label = QLabel("Drives:")
         self.heading_label.setObjectName("headingLabel")
         self.heading_label.setFont(QFont("Segoe UI", 16))
         self.heading_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
+        # Refresh Button
         self.refresh_button = QPushButton("⟳")
         self.refresh_button.setFixedSize(40, 40)
         self.refresh_button.setToolTip("Refresh USB Devices")
         self.refresh_button.setObjectName("usbButton")
         self.refresh_button.clicked.connect(self.refresh_usb_list)
 
-        self.back_button = QPushButton("Back")
-        self.back_button.setFixedSize(40, 40)
+        # Back Button
+        self.back_button = QPushButton("←")
+        self.back_button.setFixedSize(100, 40)
         self.back_button.setToolTip("Back to USB Device List")
         self.back_button.setObjectName("usbButton")
         self.back_button.clicked.connect(self.go_back)
-        self.back_button.setStyleSheet("""
-            QPushButton#usbButton {
-                background-color: transparent;
-                color: #d0d0d0;  /* Light grey text */
-                border: none;
-                font-size: 18px;
-                padding: 0;
-            }
+        self.back_button.setVisible(False)
 
-            QPushButton#usbButton:hover {
-                color: #a4d6a4;  /* Light green on hover */
-            }
+        # Header layout
+        self.header_layout = QHBoxLayout()
+        self.header_layout.setContentsMargins(0, 0, 0, 0)
+        self.header_layout.addWidget(self.heading_label)
+        self.header_layout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        self.header_layout.addWidget(self.back_button)
+        self.header_layout.addWidget(self.refresh_button)
 
-            QPushButton#usbButton:pressed {
-                color: #4c8c4a;  /* Darker green when pressed */
-            }
-        """)  # Match style with refresh_button
-
-        heading_layout = QHBoxLayout()
-        heading_layout.setContentsMargins(0, 0, 0, 0)
-        heading_layout.addWidget(self.heading_label)
-        heading_layout.addSpacerItem(QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        heading_layout.addWidget(self.refresh_button)
-        heading_layout.addWidget(self.back_button)
-
-        # Content Section
-        self.content_layout = QVBoxLayout()  # To store dynamic content
-        self.content_layout.setContentsMargins(30, 2, 30, 30)  # Reduced top margin from 10 to 5
+        # Content layout
+        self.content_layout = QVBoxLayout()
+        self.content_layout.setContentsMargins(30, 2, 30, 30)
         self.content_layout.setSpacing(15)
-        self.content_layout.addLayout(heading_layout)
+        self.content_layout.addLayout(self.header_layout)
 
+        # Scroll area and container
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
 
@@ -131,25 +119,23 @@ class USBDeviceWindow(QWidget):
         self.scroll_area.setWidget(self.usb_container)
         self.content_layout.addWidget(self.scroll_area)
 
-        # Combine all layouts
-        main_layout = QVBoxLayout()
-        main_layout.setSpacing(10)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addWidget(self.branding_header)
-        main_layout.addLayout(self.content_layout)
+        # Main layout
+        self.main_layout = QVBoxLayout()
+        self.main_layout.setSpacing(10)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.addWidget(self.branding_header)
+        self.main_layout.addLayout(self.content_layout)
 
-        self.setLayout(main_layout)
-
-        QTimer.singleShot(0, self.refresh_usb_list)
+        self.setLayout(self.main_layout)
 
     def refresh_usb_list(self):
-        devices = list_usb_devices()
-
-        # Remove any previous device cards
+        # Clear any USB device cards
         for i in reversed(range(self.usb_layout.count())):
             widget = self.usb_layout.itemAt(i).widget()
             if widget:
                 widget.setParent(None)
+
+        devices = list_usb_devices()
 
         if devices:
             for device_name, mount_point in devices:
@@ -176,20 +162,27 @@ class USBDeviceWindow(QWidget):
             QMessageBox.critical(self, "Invalid Device", "The selected drive is not a SecureUsb device.")
 
     def show_password_window(self, device_name, mount_point):
-        # Clear the existing content
-        for i in reversed(range(self.content_layout.count())):
-            widget = self.content_layout.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
+        # Hide all USB listing-related widgets
+        self.scroll_area.setVisible(False)
 
-        # Create and display the password window in place
+        # Add password window
         self.password_window = PasswordWindow(device_name, self, mount_point)
         self.content_layout.addWidget(self.password_window)
 
-        # Keep the back button visible when showing the password window
         self.back_button.setVisible(True)
+        self.refresh_button.setVisible(False)
+        self.heading_label.setText("Enter Password")
 
     def go_back(self):
-        # Close the current window and create a new instance of USBDeviceWindow
-        self.close()
-        self.__init__()
+        # Remove password window if exists
+        if hasattr(self, "password_window"):
+            self.content_layout.removeWidget(self.password_window)
+            self.password_window.deleteLater()
+            del self.password_window
+
+        # Restore USB listing layout
+        self.heading_label.setText("Drives:")
+        self.scroll_area.setVisible(True)
+        self.back_button.setVisible(False)
+        self.refresh_button.setVisible(True)
+        self.refresh_usb_list()
