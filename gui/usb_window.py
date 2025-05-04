@@ -171,7 +171,7 @@ class USBDeviceWindow(QWidget):
 
         self.back_button.setVisible(True)
         self.refresh_button.setVisible(False)
-        self.heading_label.setText("Enter Password")
+        # self.heading_label.setText("Enter Password")
 
     def go_back(self):
         # Remove password window if exists

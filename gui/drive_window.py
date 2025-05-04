@@ -2,6 +2,10 @@ import os
 import subprocess
 import shutil
 import logging
+from PyQt6.QtWidgets import QWidget, QVBoxLayout,QSizePolicy, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem, QStyle, QFileDialog
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
+import os
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QListWidget, QPushButton, QHBoxLayout, QFileDialog,
                              QMessageBox, QInputDialog, QLineEdit, QMenu)
 from PyQt6.QtGui import QIcon, QAction
@@ -24,63 +28,111 @@ class DriveWindow(QWidget):
         self.previous_window = previous_window  # Store reference to previous window
 
         self.setWindowTitle("Drive Contents")
-        self.setGeometry(200, 200, 500, 400)
-        self.setStyleSheet("background-color: #1e1e2e; color: white; font-family: Arial;")
+        self.setStyleSheet("background-color: #2d2d2d; color: #f4f4f4; font-family: 'Roboto', sans-serif;")
+        self.setGeometry(200, 200, 800, 600)  # Adjust the geometry for the window
 
         layout = QVBoxLayout()
 
-        # Back button with icon at the top left corner
-        top_layout = QHBoxLayout()
-        self.back_button = QPushButton()
-        self.back_button.setIcon(QIcon("resources/back_icon.png"))  # Set the icon
-        self.back_button.setStyleSheet("""
-            QPushButton { background-color: #A9A9A9; color: white; padding: 5px; border-radius: 5px; }
-            QPushButton:hover { background-color: #8b8b8b; }
-        """)
-        self.back_button.clicked.connect(self.unmount_and_go_back)
-        top_layout.addWidget(self.back_button, alignment=Qt.AlignmentFlag.AlignLeft)
-        top_layout.addStretch()
-        layout.addLayout(top_layout)
-
+        # Label to show current directory
         self.label = QLabel(f"Files in {mount_point}:")
-        self.label.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.label.setStyleSheet("font-size: 22px; font-weight: bold; color: #e0e0e0; padding: 15px;")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.label)
 
+        # File List with modernized design
         self.file_list = QListWidget()
-        self.file_list.setStyleSheet("background-color: #2e2e3e; color: white; font-size: 14px; padding: 5px;")
+        self.file_list.setStyleSheet("""
+            QListWidget {
+                background-color: #3a3a3a;
+                color: #f4f4f4;
+                font-size: 16px;
+                border: none;
+                padding: 10px;
+                border-radius: 8px;
+            }
+            QListWidget::item {
+                padding: 8px;
+            }
+            QListWidget::item:hover {
+                background-color: #6a5acd;  # PopOS Purple
+            }
+            QListWidget::item:selected {
+                background-color: #4f4a8e;  # Darker Purple
+            }
+        """)
         self.file_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.file_list.customContextMenuRequested.connect(self.show_context_menu)
         layout.addWidget(self.file_list)
 
+        # Horizontal layout for buttons (Refresh + Add File)
+        button_layout = QHBoxLayout()
+
+        # Refresh Button with enhanced styling
         self.refresh_button = QPushButton("Refresh")
-        self.refresh_button.setStyleSheet("background-color: #0078D7; color: white; padding: 10px; border-radius: 5px;")
+        self.refresh_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4caf50;
+                color: #ffffff;
+                padding: 12px 20px;
+                border-radius: 8px;
+                border: none;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+            QPushButton:pressed {
+                background-color: #388e3c;
+            }
+        """)
         self.refresh_button.clicked.connect(self.load_files)
-        layout.addWidget(self.refresh_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        button_layout.addWidget(self.refresh_button)
 
-        # Add File button
+        # Add File Button with consistent design
         self.add_file_button = QPushButton("Add File")
-        self.add_file_button.setStyleSheet(
-            "background-color: #0078D7; color: white; padding: 10px; border-radius: 5px;")
+        self.add_file_button.setStyleSheet("""
+            QPushButton {
+                background-color: #4caf50;
+                color: #ffffff;
+                padding: 12px 20px;
+                border-radius: 8px;
+                border: none;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                background-color: #4caf50;
+            }
+            QPushButton:pressed {
+                background-color: #388e3c;
+            }
+        """)
         self.add_file_button.clicked.connect(self.add_file)
-        layout.addWidget(self.add_file_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        button_layout.addWidget(self.add_file_button)
 
+        # Add horizontal button layout to the main layout
+        layout.addLayout(button_layout)
+
+        # Add layout to window
         self.setLayout(layout)
 
+        # Make the window expand to fill the available space
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        # Load the files into the list view
         self.load_files()
 
     def show_context_menu(self, position):
         menu = QMenu()
         open_action = QAction("Open", self)
         download_action = QAction("Download", self)
-        delete_action = QAction("Delete", self)  # Add delete option
+        delete_action = QAction("Delete", self)
         menu.addAction(open_action)
         menu.addAction(download_action)
-        menu.addAction(delete_action)  # Add delete option to menu
+        menu.addAction(delete_action)
 
         open_action.triggered.connect(self.open_selected_file)
         download_action.triggered.connect(self.download_selected_file)
-        delete_action.triggered.connect(self.delete_selected_file)  # Connect to delete method
+        delete_action.triggered.connect(self.delete_selected_file)
 
         menu.exec(self.file_list.viewport().mapToGlobal(position))
 
@@ -134,6 +186,7 @@ class DriveWindow(QWidget):
 
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to download and decrypt file: {e}")
+
 
     def delete_selected_file(self):
         selected_items = self.file_list.selectedItems()

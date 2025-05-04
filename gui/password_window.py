@@ -161,17 +161,25 @@ class PasswordWindow(QWidget):
         except subprocess.CalledProcessError as e:
             print(f"Pre-checks failed: {e}")
             return False
-
     def open_drive_window(self):
+        # Hide the password-related widgets
+        self.label.setVisible(False)
+        self.password_input.setVisible(False)
+        self.submit_button.setVisible(False)
+        self.change_password_button.setVisible(False)
+
         # Clear old widgets
         while self._layout.count():
             child = self._layout.takeAt(0)
             if child.widget():
-                child.widget().setParent(None)
+             child.widget().setParent(None)
 
-        # Load DriveWindow inside current window
+        # Load DriveWindow inside the current window (self)
         self.drive_window = DriveWindow(self.mount_point, self.previous_window)
         self._layout.addWidget(self.drive_window)
+
+     # Refresh layout to ensure proper rendering
+        self.setLayout(self._layout)
 
     def change_password(self):
         current_password, ok = QInputDialog.getText(self, 'Current Password',
