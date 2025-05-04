@@ -81,11 +81,32 @@ class DriveWindow(QWidget):
         self.file_list.itemDoubleClicked.connect(self.open_selected_file)
         layout.addWidget(self.file_list)
 
-        # Button layout aligned to the right
+        # Button layout
         button_layout = QHBoxLayout()
+
+        # Delete Button (Initially Hidden) - Placed on the left
+        self.delete_button = QPushButton("Delete")
+        self.delete_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f38ba8;
+                color: #1e1e2e;
+                padding: 10px 18px;
+                border-radius: 6px;
+                border: none;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #a6e3a1;
+            }
+        """)
+        self.delete_button.clicked.connect(self.delete_selected_file)
+        self.delete_button.setVisible(False)  # Hide the button initially
+        button_layout.addWidget(self.delete_button)
+
+        # Stretch in the middle (this will push the right buttons to the right)
         button_layout.addStretch()
 
-        # Button styling
+        # Center buttons layout (for Refresh and Add File)
         button_style = """
             QPushButton {
                 background-color: #94e2d5;
@@ -100,23 +121,19 @@ class DriveWindow(QWidget):
             }
         """
 
+        # Refresh Button
         self.refresh_button = QPushButton("⟳ Refresh")
         self.refresh_button.setStyleSheet(button_style)
         self.refresh_button.clicked.connect(self.load_files)
         button_layout.addWidget(self.refresh_button)
 
+        # Add File Button
         self.add_file_button = QPushButton("➕ Add File")
         self.add_file_button.setStyleSheet(button_style)
         self.add_file_button.clicked.connect(self.add_file)
         button_layout.addWidget(self.add_file_button)
 
-        # Delete Button (Initially Hidden)
-        self.delete_button = QPushButton("Delete Selected")
-        self.delete_button.setStyleSheet(button_style)
-        self.delete_button.clicked.connect(self.delete_selected_file)
-        self.delete_button.setVisible(False)  # Hide the button initially
-        button_layout.addWidget(self.delete_button)
-
+        # Add the button layout to the main layout
         layout.addLayout(button_layout)
         self.setLayout(layout)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -145,12 +162,6 @@ class DriveWindow(QWidget):
             error_item = QListWidgetItem(f"Error: {e}")
             error_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.file_list.addItem(error_item)
-
-        except Exception as e:
-            error_item = QListWidgetItem(f"Error: {e}")
-            error_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.file_list.addItem(error_item)
-
 
 
     def show_context_menu(self, position):
