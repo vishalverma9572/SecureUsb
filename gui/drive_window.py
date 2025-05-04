@@ -2,7 +2,8 @@ import os
 import subprocess
 import shutil
 import logging
-from PyQt6.QtWidgets import QWidget, QVBoxLayout,QSizePolicy, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem, QStyle, QFileDialog
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QMessageBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout,QSizePolicy, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem, QStyle, QFileDialog, QDialog
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 import os
@@ -134,6 +135,26 @@ class DriveWindow(QWidget):
         self.add_file_button.clicked.connect(self.add_file)
         button_layout.addWidget(self.add_file_button)
 
+        # Help Button (❓)
+        self.help_button = QPushButton("?")
+        self.help_button.setStyleSheet("""
+            QPushButton {
+                background-color: #94e2d5;
+                color: #1e1e2e;
+                padding: 8px 14px;
+                border-radius: 6px;
+                border: none;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #fab387;
+            }
+        """)
+        self.help_button.setToolTip("Click for help or usage instructions")
+        self.help_button.clicked.connect(self.show_help_dialog)
+        button_layout.addWidget(self.help_button)
+
         # Add the button layout to the main layout
         layout.addLayout(button_layout)
         self.setLayout(layout)
@@ -164,7 +185,60 @@ class DriveWindow(QWidget):
             error_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.file_list.addItem(error_item)
 
+    def show_help_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Help / Instructions")
+        dialog.setGeometry(300, 200, 400, 300)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1d1f21;
+                border-radius: 8px;
+            }
+            QLabel {
+                color: #ffffff;
+                font-size: 14px;
+                padding: 10px;
+            }
+            QVBoxLayout {
+                spacing: 10px;
+            }
+            QPushButton {
+                background-color: #94e2d5;
+                color: #1e1e2e;
+                padding: 8px 14px;
+                border-radius: 6px;
+                border: none;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #a6e3a1;
+            }
+        """)
 
+        layout = QVBoxLayout()
+
+        # Instructional text with bullets and clear format
+        instructions = """
+        Please note:
+        
+        • Due to the nature of decryption, we cannot determine the file type automatically.
+        • When you attempt to open a file, it will be processed through several potential viewers.
+          If the correct viewer is available, the file will be displayed as intended.
+          Otherwise, an error will be shown.
+        • Alternatively, you may download the file to your local system to determine the file type,
+          but please proceed with caution as this can pose a risk.
+        """
+        
+        instructions_label = QLabel(instructions)
+        layout.addWidget(instructions_label)
+
+        # Close button
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button)
+
+        dialog.setLayout(layout)
+        dialog.exec()
     def show_context_menu(self, position):
         menu = QMenu()
         open_action = QAction("Open", self)
