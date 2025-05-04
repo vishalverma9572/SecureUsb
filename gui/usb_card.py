@@ -15,7 +15,7 @@ class USBCard(QFrame):
         # Styling without hover effect
         self.setStyleSheet("""
             QFrame {
-                background-color: #2e2e2e;
+                background-color: #272727;
                 padding: 15px;
                 border-radius: 12px;
                 transition: background-color 0.3s ease;  /* Smooth transition */
@@ -48,11 +48,13 @@ class USBCard(QFrame):
             QPushButton#toggleButton:pressed {
                 background-color: #6b9d6b;  /* Darker green when pressed */
             }
-            QLabel#deviceName {
+            QLabel#deviceName{
                 font-size: 16px;
                 font-weight: bold;
                 color: #ffffff;
             }
+
+                        
             QLabel#mountPoint {
                 color: #aaa;
                 font-size: 12px;
@@ -180,9 +182,10 @@ class USBCard(QFrame):
                 padding: 15px;
                 border-radius: 12px;
             }
-            QLabel {
-                color: #d0d0d0;
-                font-size: 14px;
+            QLabel#deviceName{
+                font-size: 16px;
+                font-weight: bold;
+                color: #ffffff;
             }
             QPushButton {
                 background-color: #3b8c3a;
@@ -214,13 +217,14 @@ class USBCard(QFrame):
         # Reset background color when mouse leaves
         self.setStyleSheet("""
             QFrame {
-                background-color: #2e2e2e;
+                background-color: #272727;
                 padding: 15px;
                 border-radius: 12px;
             }
-            QLabel {
-                color: #d0d0d0;
-                font-size: 14px;
+            QLabel#deviceName {
+                font-size: 16px;
+                font-weight: bold;
+                color: #ffffff;
             }
             QPushButton {
                 background-color: #3b8c3a;

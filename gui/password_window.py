@@ -63,20 +63,19 @@ class PasswordWindow(QWidget):
         button_layout.setSpacing(8)
 
         button_style = """
-            QPushButton {
-                background-color: #2D9B72;
-                color: white;
-                padding: 6px;
+            QPushButton{
+                background-color: #65a465;  /* Greenish shade similar to Pop!_OS */
+                 min-width: 100px;
+                 padding: 6px;
                 border-radius: 4px;
                 font-size: 13px;
-                border: none;
-                min-width: 100px;
+                color: white;
             }
             QPushButton:hover {
-                background-color: #32b97d;
+                background-color: #76b476;  /* Light green when hovered */
             }
             QPushButton:pressed {
-                background-color: #248f62;
+                background-color: #6b9d6b;  /* Darker green when pressed */
             }
         """
 

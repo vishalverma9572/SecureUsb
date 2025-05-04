@@ -33,7 +33,7 @@ class DriveWindow(QWidget):
         self.setGeometry(200, 200, 800, 600)
         self.setStyleSheet("""
             QWidget {
-                background-color: #1f1f1f;
+                background-color: #272727;
                 color: #ffffff;
                 font-family: 'Roboto', sans-serif;
                 border-radius: 8px;
@@ -45,7 +45,7 @@ class DriveWindow(QWidget):
                 padding: 15px;
             }
             QListWidget {
-                background-color: #1f1f1f;
+                background-color: #272727;
                 color: #f4f4f4;
                 font-size: 14px;
                 border: none;
