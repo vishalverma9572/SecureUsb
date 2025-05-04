@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout,QSizePolicy, QHBoxLayout, QPush
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 import os
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QListWidget, QPushButton, QHBoxLayout, QFileDialog,
                              QMessageBox, QInputDialog, QLineEdit, QMenu)
 from PyQt6.QtGui import QIcon, QAction
@@ -18,108 +19,130 @@ from cryptography.hazmat.backends import default_backend
 import io
 from PIL import Image
 
-
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+icon_path = os.path.join(BASE_DIR, "icons", "file.png")
 
 class DriveWindow(QWidget):
     def __init__(self, mount_point, previous_window):
         super().__init__()
 
         self.mount_point = mount_point
-        self.previous_window = previous_window  # Store reference to previous window
+        self.previous_window = previous_window
 
         self.setWindowTitle("Drive Contents")
-        self.setStyleSheet("background-color: #2d2d2d; color: #f4f4f4; font-family: 'Roboto', sans-serif;")
-        self.setGeometry(200, 200, 800, 600)  # Adjust the geometry for the window
-
-        layout = QVBoxLayout()
-
-        # Label to show current directory
-        self.label = QLabel(f"Files in {mount_point}:")
-        self.label.setStyleSheet("font-size: 22px; font-weight: bold; color: #e0e0e0; padding: 15px;")
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.label)
-
-        # File List with modernized design
-        self.file_list = QListWidget()
-        self.file_list.setStyleSheet("""
+        self.setGeometry(200, 200, 800, 600)
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #1e1e2e;
+                color: #ffffff;
+                font-family: 'Roboto', sans-serif;
+            }
+            QLabel {
+                font-size: 22px;
+                font-weight: bold;
+                color: #cdd6f4;
+                padding: 15px;
+            }
             QListWidget {
-                background-color: #3a3a3a;
+                background-color: #313244;
                 color: #f4f4f4;
-                font-size: 16px;
+                font-size: 14px;
                 border: none;
                 padding: 10px;
                 border-radius: 8px;
             }
             QListWidget::item {
-                padding: 8px;
+                padding: 10px;
+                margin: 5px;
             }
             QListWidget::item:hover {
-                background-color: #6a5acd;  # PopOS Purple
+                background-color: #89b4fa;
+                color: black;
             }
             QListWidget::item:selected {
-                background-color: #4f4a8e;  # Darker Purple
+                background-color: #74c7ec;
+                color: black;
             }
         """)
+
+        layout = QVBoxLayout()
+
+        self.label = QLabel(f"Files in {mount_point}:")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.label)
+
+        # File list with grid/tile view
+        self.file_list = QListWidget()
+        self.file_list.setViewMode(QListWidget.ViewMode.IconMode)
+        self.file_list.setIconSize(QSize(64, 64))
+        self.file_list.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.file_list.setGridSize(QSize(120, 120))
+        self.file_list.setSpacing(10)
+        self.file_list.setWrapping(True)
         self.file_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.file_list.customContextMenuRequested.connect(self.show_context_menu)
+        self.file_list.itemDoubleClicked.connect(self.open_selected_file)
         layout.addWidget(self.file_list)
 
-        # Horizontal layout for buttons (Refresh + Add File)
+        # Button layout aligned to the right
         button_layout = QHBoxLayout()
+        button_layout.addStretch()
 
-        # Refresh Button with enhanced styling
-        self.refresh_button = QPushButton("Refresh")
-        self.refresh_button.setStyleSheet("""
+        # Button styling
+        button_style = """
             QPushButton {
-                background-color: #4caf50;
-                color: #ffffff;
-                padding: 12px 20px;
-                border-radius: 8px;
+                background-color: #94e2d5;
+                color: #1e1e2e;
+                padding: 10px 18px;
+                border-radius: 6px;
                 border: none;
-                font-size: 16px;
+                font-size: 15px;
             }
             QPushButton:hover {
-                background-color: #4caf50;
+                background-color: #a6e3a1;
             }
-            QPushButton:pressed {
-                background-color: #388e3c;
-            }
-        """)
+        """
+
+        self.refresh_button = QPushButton("⟳ Refresh")
+        self.refresh_button.setStyleSheet(button_style)
         self.refresh_button.clicked.connect(self.load_files)
         button_layout.addWidget(self.refresh_button)
 
-        # Add File Button with consistent design
-        self.add_file_button = QPushButton("Add File")
-        self.add_file_button.setStyleSheet("""
-            QPushButton {
-                background-color: #4caf50;
-                color: #ffffff;
-                padding: 12px 20px;
-                border-radius: 8px;
-                border: none;
-                font-size: 16px;
-            }
-            QPushButton:hover {
-                background-color: #4caf50;
-            }
-            QPushButton:pressed {
-                background-color: #388e3c;
-            }
-        """)
+        self.add_file_button = QPushButton("➕ Add File")
+        self.add_file_button.setStyleSheet(button_style)
         self.add_file_button.clicked.connect(self.add_file)
         button_layout.addWidget(self.add_file_button)
 
-        # Add horizontal button layout to the main layout
         layout.addLayout(button_layout)
-
-        # Add layout to window
         self.setLayout(layout)
-
-        # Make the window expand to fill the available space
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        # Load the files into the list view
         self.load_files()
+
+    def load_files(self):
+        self.file_list.clear()
+        icon_path = os.path.join(BASE_DIR, "icons", "file.png")
+
+        try:
+            files = os.listdir(self.mount_point)
+            if not files:
+                item = QListWidgetItem("No files found")
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.file_list.addItem(item)
+                return
+
+            for file_name in files:
+                item = QListWidgetItem(QIcon(icon_path), file_name)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                item.setSizeHint(QSize(120, 120))  # Enough space for icon + label padding
+                self.file_list.addItem(item)
+
+        except Exception as e:
+            error_item = QListWidgetItem(f"Error: {e}")
+            error_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.file_list.addItem(error_item)
+
+
 
     def show_context_menu(self, position):
         menu = QMenu()
@@ -278,13 +301,13 @@ class DriveWindow(QWidget):
 
         return encrypted_file_path
 
-    def load_files(self):
-        self.file_list.clear()
-        try:
-            files = os.listdir(self.mount_point)
-            self.file_list.addItems(files if files else ["No files found"])
-        except Exception as e:
-            self.file_list.addItem(f"Error: {e}")
+    # def load_files(self):
+    #     self.file_list.clear()
+    #     try:
+    #         files = os.listdir(self.mount_point)
+    #         self.file_list.addItems(files if files else ["No files found"])
+    #     except Exception as e:
+    #         self.file_list.addItem(f"Error: {e}")
 
     def unmount_and_go_back(self):
 
