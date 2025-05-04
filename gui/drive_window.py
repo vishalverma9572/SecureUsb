@@ -20,7 +20,7 @@ import io
 from PIL import Image
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-icon_path = os.path.join(BASE_DIR, "icons", "file.png")
+icon_path = os.path.join(BASE_DIR, "icons", "file2.png")
 
 class DriveWindow(QWidget):
     def __init__(self, mount_point, previous_window):
@@ -33,18 +33,19 @@ class DriveWindow(QWidget):
         self.setGeometry(200, 200, 800, 600)
         self.setStyleSheet("""
             QWidget {
-                background-color: #1e1e2e;
+                background-color: #1f1f1f;
                 color: #ffffff;
                 font-family: 'Roboto', sans-serif;
+                border-radius: 8px;
             }
             QLabel {
                 font-size: 22px;
                 font-weight: bold;
-                color: #cdd6f4;
+                color: #FFFFFF;
                 padding: 15px;
             }
             QListWidget {
-                background-color: #313244;
+                background-color: #1f1f1f;
                 color: #f4f4f4;
                 font-size: 14px;
                 border: none;
@@ -67,11 +68,6 @@ class DriveWindow(QWidget):
 
         layout = QVBoxLayout()
 
-        self.label = QLabel(f"Files in {mount_point}:")
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.label)
-
-        # File list with grid/tile view
         self.file_list = QListWidget()
         self.file_list.setViewMode(QListWidget.ViewMode.IconMode)
         self.file_list.setIconSize(QSize(64, 64))
@@ -81,6 +77,7 @@ class DriveWindow(QWidget):
         self.file_list.setWrapping(True)
         self.file_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.file_list.customContextMenuRequested.connect(self.show_context_menu)
+        self.file_list.itemSelectionChanged.connect(self.on_file_selected)  # Detect item selection
         self.file_list.itemDoubleClicked.connect(self.open_selected_file)
         layout.addWidget(self.file_list)
 
@@ -113,6 +110,13 @@ class DriveWindow(QWidget):
         self.add_file_button.clicked.connect(self.add_file)
         button_layout.addWidget(self.add_file_button)
 
+        # Delete Button (Initially Hidden)
+        self.delete_button = QPushButton("Delete Selected")
+        self.delete_button.setStyleSheet(button_style)
+        self.delete_button.clicked.connect(self.delete_selected_file)
+        self.delete_button.setVisible(False)  # Hide the button initially
+        button_layout.addWidget(self.delete_button)
+
         layout.addLayout(button_layout)
         self.setLayout(layout)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -121,7 +125,7 @@ class DriveWindow(QWidget):
 
     def load_files(self):
         self.file_list.clear()
-        icon_path = os.path.join(BASE_DIR, "icons", "file.png")
+        icon_path = os.path.join(BASE_DIR, "icons", "file2.png")
 
         try:
             files = os.listdir(self.mount_point)
@@ -136,6 +140,11 @@ class DriveWindow(QWidget):
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 item.setSizeHint(QSize(120, 120))  # Enough space for icon + label padding
                 self.file_list.addItem(item)
+
+        except Exception as e:
+            error_item = QListWidgetItem(f"Error: {e}")
+            error_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.file_list.addItem(error_item)
 
         except Exception as e:
             error_item = QListWidgetItem(f"Error: {e}")
@@ -300,6 +309,14 @@ class DriveWindow(QWidget):
             f.write(iv + encrypted_data)
 
         return encrypted_file_path
+    
+    def on_file_selected(self):
+        """Handles file selection and shows the delete button."""
+        selected_items = self.file_list.selectedItems()
+        if selected_items:
+            self.delete_button.setVisible(True)  # Show delete button if a file is selected
+        else:
+            self.delete_button.setVisible(False)  
 
     # def load_files(self):
     #     self.file_list.clear()
