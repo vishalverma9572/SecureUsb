@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 import io
 from PIL import Image
+from .file_viewer import FileViewer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 icon_path = os.path.join(BASE_DIR, "icons", "file2.png")
@@ -272,6 +273,7 @@ class DriveWindow(QWidget):
         selected_items = self.file_list.selectedItems()
         if not selected_items:
             return
+
         file_name = selected_items[0].text()
         file_path = os.path.join(self.mount_point, file_name)
 
@@ -280,18 +282,16 @@ class DriveWindow(QWidget):
         if not ok or not password:
             return
 
-        sudo_password, ok = QInputDialog.getText(self, "Sudo Password", "Enter your sudo password:",
-                                                 QLineEdit.EchoMode.Password)
-        if not ok or not sudo_password:
-            return
-
         try:
             decrypted_data = self.decrypt_file(file_path, password)
-            with Image.open(io.BytesIO(decrypted_data)) as img:
-                img.show()
-            QMessageBox.information(self, "Success", f"Decrypted file '{file_name}'.")
+
+            # Keep reference so FileViewer stays alive
+            self.viewer_window = FileViewer(decrypted_data)
+
+            QMessageBox.information(self, "Success", f"Decrypted and opened file '{file_name}'.")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to open file: {e}")
+
 
     def encrypt_file(self, file_path, password):
         """Encrypt a file using AES."""
