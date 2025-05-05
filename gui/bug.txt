@@ -1,0 +1,2 @@
+sudo umount /mnt/private_partition
+sudo cryptsetup luksClose encrypted_partition
