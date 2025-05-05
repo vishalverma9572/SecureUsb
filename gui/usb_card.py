@@ -1,6 +1,7 @@
 import os
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton, QSizePolicy, QHBoxLayout, QProgressBar
 from PyQt6.QtGui import QPixmap, QCursor
+from PyQt6.QtCore import QTimer
 from PyQt6.QtCore import Qt
 
 class USBCard(QFrame):
@@ -9,6 +10,10 @@ class USBCard(QFrame):
         self.device_name = device_name
         self.mount_point = mount_point
         self.on_select = on_select
+        self.click_timer = QTimer()
+        self.click_timer.setSingleShot(True)
+        self.click_timer.timeout.connect(self.single_click_action)
+        self.clicked = False
 
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
@@ -131,6 +136,18 @@ class USBCard(QFrame):
 
         self.setLayout(main_layout)
 
+
+
+
+    def single_click_action(self):
+        # Highlight the card on single click
+        self.setStyleSheet(self.styleSheet() + "border: 2px solid #a4d6a4;")
+        print(f"Selected USB: {self.device_name} at {self.mount_point}")  
+    
+    def double_click_action(self):
+        self.on_select(self.device_name, self.mount_point)
+    
+    
     def update_storage_bar(self):
         try:
             # Check if mount point exists and is valid
@@ -171,8 +188,11 @@ class USBCard(QFrame):
         self.toggle_button.setText("Hide Mount Point" if not is_visible else "Show Mount Point")
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.on_select(self.device_name, self.mount_point)
+        if self.click_timer.isActive():
+            self.click_timer.stop()
+            self.double_click_action()
+        else:
+            self.click_timer.start(250) 
 
     def enterEvent(self, event):
         # Change background color when hovered
