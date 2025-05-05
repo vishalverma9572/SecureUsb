@@ -105,6 +105,25 @@ class DriveWindow(QWidget):
         self.delete_button.setVisible(False)  # Hide the button initially
         button_layout.addWidget(self.delete_button)
 
+        # Download Button - Initially Hidden, placed after Delete
+        self.download_button = QPushButton("Download")
+        self.download_button.setStyleSheet("""
+            QPushButton {
+                background-color: #94e2d5; /* Green color */
+                color: #1e1e2e;
+                padding: 10px 18px;
+                border-radius: 6px;
+                border: none;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #a6e3a1;
+            }
+        """)
+        self.download_button.clicked.connect(self.download_selected_file)
+        self.download_button.setVisible(False)  # Hide the button initially
+        button_layout.addWidget(self.download_button)
+
         # Stretch in the middle (this will push the right buttons to the right)
         button_layout.addStretch()
 
@@ -396,12 +415,17 @@ class DriveWindow(QWidget):
         return encrypted_file_path
     
     def on_file_selected(self):
-        """Handles file selection and shows the delete button."""
+        # Check if any file is selected
         selected_items = self.file_list.selectedItems()
         if selected_items:
-            self.delete_button.setVisible(True)  # Show delete button if a file is selected
+            # Make both the delete and download buttons visible
+            self.delete_button.setVisible(True)
+            self.download_button.setVisible(True)
         else:
-            self.delete_button.setVisible(False)  
+            # Hide both buttons if no item is selected
+            self.delete_button.setVisible(False)
+            self.download_button.setVisible(False)
+
 
     # def load_files(self):
     #     self.file_list.clear()

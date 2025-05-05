@@ -59,7 +59,12 @@ class PasswordWindow(QWidget):
                 cursor: pointer;
             }
             QPushButton#unlockButton {
-                background-color: #3b8c3a; /* Green */
+                background-color: #4caf50;
+                color: white;
+                padding: 8px 16px;
+                font-weight: bold;
+                border-radius: 6px;
+                border: none;
             }
             QPushButton#unlockButton:hover {
                 background-color: #4caf50;
@@ -68,7 +73,12 @@ class PasswordWindow(QWidget):
                 background-color: #388e3c;
             }
             QPushButton#changePasswordButton {
-                background-color: #3b8c3a; /* Orange */
+                background-color: #4caf50;
+                color: white;
+                padding: 8px 16px;
+                font-weight: bold;
+                border-radius: 6px;
+                border: none;
             }
             QPushButton#changePasswordButton:hover {
                 background-color: #4caf50;
