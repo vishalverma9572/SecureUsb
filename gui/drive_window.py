@@ -2,7 +2,8 @@ import os
 import subprocess
 import shutil
 import logging
-from PyQt6.QtWidgets import QWidget, QVBoxLayout,QSizePolicy, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem, QStyle, QFileDialog
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QMessageBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout,QSizePolicy, QHBoxLayout, QPushButton, QLabel, QListWidget, QListWidgetItem, QStyle, QFileDialog, QDialog
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 import os
@@ -18,9 +19,10 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 import io
 from PIL import Image
+from .file_viewer import FileViewer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-icon_path = os.path.join(BASE_DIR, "icons", "file.png")
+icon_path = os.path.join(BASE_DIR, "icons", "file2.png")
 
 class DriveWindow(QWidget):
     def __init__(self, mount_point, previous_window):
@@ -33,18 +35,19 @@ class DriveWindow(QWidget):
         self.setGeometry(200, 200, 800, 600)
         self.setStyleSheet("""
             QWidget {
-                background-color: #1e1e2e;
+                background-color: #272727;
                 color: #ffffff;
                 font-family: 'Roboto', sans-serif;
+                border-radius: 8px;
             }
             QLabel {
                 font-size: 22px;
                 font-weight: bold;
-                color: #cdd6f4;
+                color: #FFFFFF;
                 padding: 15px;
             }
             QListWidget {
-                background-color: #313244;
+                background-color: #272727;
                 color: #f4f4f4;
                 font-size: 14px;
                 border: none;
@@ -67,11 +70,6 @@ class DriveWindow(QWidget):
 
         layout = QVBoxLayout()
 
-        self.label = QLabel(f"Files in {mount_point}:")
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.label)
-
-        # File list with grid/tile view
         self.file_list = QListWidget()
         self.file_list.setViewMode(QListWidget.ViewMode.IconMode)
         self.file_list.setIconSize(QSize(64, 64))
@@ -81,14 +79,55 @@ class DriveWindow(QWidget):
         self.file_list.setWrapping(True)
         self.file_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.file_list.customContextMenuRequested.connect(self.show_context_menu)
+        self.file_list.itemSelectionChanged.connect(self.on_file_selected)  # Detect item selection
         self.file_list.itemDoubleClicked.connect(self.open_selected_file)
         layout.addWidget(self.file_list)
 
-        # Button layout aligned to the right
+        # Button layout
         button_layout = QHBoxLayout()
+
+        # Delete Button (Initially Hidden) - Placed on the left
+        self.delete_button = QPushButton("Delete")
+        self.delete_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f38ba8;
+                color: #1e1e2e;
+                padding: 10px 18px;
+                border-radius: 6px;
+                border: none;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #a6e3a1;
+            }
+        """)
+        self.delete_button.clicked.connect(self.delete_selected_file)
+        self.delete_button.setVisible(False)  # Hide the button initially
+        button_layout.addWidget(self.delete_button)
+
+        # Download Button - Initially Hidden, placed after Delete
+        self.download_button = QPushButton("Download")
+        self.download_button.setStyleSheet("""
+            QPushButton {
+                background-color: #94e2d5; /* Green color */
+                color: #1e1e2e;
+                padding: 10px 18px;
+                border-radius: 6px;
+                border: none;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #a6e3a1;
+            }
+        """)
+        self.download_button.clicked.connect(self.download_selected_file)
+        self.download_button.setVisible(False)  # Hide the button initially
+        button_layout.addWidget(self.download_button)
+
+        # Stretch in the middle (this will push the right buttons to the right)
         button_layout.addStretch()
 
-        # Button styling
+        # Center buttons layout (for Refresh and Add File)
         button_style = """
             QPushButton {
                 background-color: #94e2d5;
@@ -103,16 +142,39 @@ class DriveWindow(QWidget):
             }
         """
 
+        # Refresh Button
         self.refresh_button = QPushButton("⟳ Refresh")
         self.refresh_button.setStyleSheet(button_style)
         self.refresh_button.clicked.connect(self.load_files)
         button_layout.addWidget(self.refresh_button)
 
+        # Add File Button
         self.add_file_button = QPushButton("➕ Add File")
         self.add_file_button.setStyleSheet(button_style)
         self.add_file_button.clicked.connect(self.add_file)
         button_layout.addWidget(self.add_file_button)
 
+        # Help Button (❓)
+        self.help_button = QPushButton("?")
+        self.help_button.setStyleSheet("""
+            QPushButton {
+                background-color: #94e2d5;
+                color: #1e1e2e;
+                padding: 8px 14px;
+                border-radius: 6px;
+                border: none;
+                font-size: 18px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #fab387;
+            }
+        """)
+        self.help_button.setToolTip("Click for help or usage instructions")
+        self.help_button.clicked.connect(self.show_help_dialog)
+        button_layout.addWidget(self.help_button)
+
+        # Add the button layout to the main layout
         layout.addLayout(button_layout)
         self.setLayout(layout)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -121,7 +183,7 @@ class DriveWindow(QWidget):
 
     def load_files(self):
         self.file_list.clear()
-        icon_path = os.path.join(BASE_DIR, "icons", "file.png")
+        icon_path = os.path.join(BASE_DIR, "icons", "file2.png")
 
         try:
             files = os.listdir(self.mount_point)
@@ -142,8 +204,60 @@ class DriveWindow(QWidget):
             error_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.file_list.addItem(error_item)
 
+    def show_help_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Help / Instructions")
+        dialog.setGeometry(300, 200, 400, 300)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1d1f21;
+                border-radius: 8px;
+            }
+            QLabel {
+                color: #ffffff;
+                font-size: 14px;
+                padding: 10px;
+            }
+            QVBoxLayout {
+                spacing: 10px;
+            }
+            QPushButton {
+                background-color: #94e2d5;
+                color: #1e1e2e;
+                padding: 8px 14px;
+                border-radius: 6px;
+                border: none;
+                font-size: 15px;
+            }
+            QPushButton:hover {
+                background-color: #a6e3a1;
+            }
+        """)
 
+        layout = QVBoxLayout()
 
+        # Instructional text with bullets and clear format
+        instructions = """
+        Please note:
+        
+        • Due to the nature of decryption, we cannot determine the file type automatically.
+        • When you attempt to open a file, it will be processed through several potential viewers.
+          If the correct viewer is available, the file will be displayed as intended.
+          Otherwise, an error will be shown.
+        • Alternatively, you may download the file to your local system to determine the file type,
+          but please proceed with caution as this can pose a risk.
+        """
+        
+        instructions_label = QLabel(instructions)
+        layout.addWidget(instructions_label)
+
+        # Close button
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(dialog.accept)
+        layout.addWidget(close_button)
+
+        dialog.setLayout(layout)
+        dialog.exec()
     def show_context_menu(self, position):
         menu = QMenu()
         open_action = QAction("Open", self)
@@ -252,6 +366,7 @@ class DriveWindow(QWidget):
         selected_items = self.file_list.selectedItems()
         if not selected_items:
             return
+
         file_name = selected_items[0].text()
         file_path = os.path.join(self.mount_point, file_name)
 
@@ -260,18 +375,16 @@ class DriveWindow(QWidget):
         if not ok or not password:
             return
 
-        sudo_password, ok = QInputDialog.getText(self, "Sudo Password", "Enter your sudo password:",
-                                                 QLineEdit.EchoMode.Password)
-        if not ok or not sudo_password:
-            return
-
         try:
             decrypted_data = self.decrypt_file(file_path, password)
-            with Image.open(io.BytesIO(decrypted_data)) as img:
-                img.show()
-            QMessageBox.information(self, "Success", f"Decrypted file '{file_name}'.")
+
+            # Keep reference so FileViewer stays alive
+            self.viewer_window = FileViewer(decrypted_data)
+
+            QMessageBox.information(self, "Success", f"Decrypted and opened file '{file_name}'.")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to open file: {e}")
+
 
     def encrypt_file(self, file_path, password):
         """Encrypt a file using AES."""
@@ -300,6 +413,19 @@ class DriveWindow(QWidget):
             f.write(iv + encrypted_data)
 
         return encrypted_file_path
+    
+    def on_file_selected(self):
+        # Check if any file is selected
+        selected_items = self.file_list.selectedItems()
+        if selected_items:
+            # Make both the delete and download buttons visible
+            self.delete_button.setVisible(True)
+            self.download_button.setVisible(True)
+        else:
+            # Hide both buttons if no item is selected
+            self.delete_button.setVisible(False)
+            self.download_button.setVisible(False)
+
 
     # def load_files(self):
     #     self.file_list.clear()
